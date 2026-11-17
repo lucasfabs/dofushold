@@ -1,0 +1,53 @@
+{
+  "start": "crossroads",
+  "regions": [
+    {
+      "id": "crossroads",
+      "name": "Le Carrefour",
+      "description": "Un carrefour boueux où chaque route semble également maudite.",
+      "danger": 1,
+      "foes": ["bandit", "wolf", "goblin"],
+      "exits": ["astrub", "amakna", "bonta"]
+    },
+    {
+      "id": "astrub",
+      "name": "Astrub",
+      "description": "Rues tranquilles, foyers chauds, et des rats plus nombreux que les gardes.",
+      "danger": 1,
+      "foes": ["cat", "eagle", "giant-rat"],
+      "exits": ["crossroads", "amakna"]
+    },
+    {
+      "id": "amakna",
+      "name": "Amakna",
+      "description": "Des champs dorés qui sentent l'orge, la bière et les bêtes inquiètes.",
+      "danger": 2,
+      "foes": ["black-bear", "boar", "frog"],
+      "exits": ["crossroads", "astrub", "frigost"]
+    },
+    {
+      "id": "bonta",
+      "name": "Bonta",
+      "description": "Murs blancs, bannières éclatantes, et une paix imposée au fil de l'épée.",
+      "danger": 3,
+      "foes": ["guard", "knight", "mage"],
+      "exits": ["crossroads", "brakmar"]
+    },
+    {
+      "id": "frigost",
+      "name": "Frigost",
+      "description": "Un silence gelé. La neige recouvre les morts, et les morts ne restent pas enterrés.",
+      "danger": 4,
+      "foes": ["adult-black-dragon", "skeleton", "ice-mephit"],
+      "exits": ["amakna"]
+    },
+    {
+      "id": "brakmar",
+      "name": "Brakmar",
+      "description": "Cendres, cages de fer, et des rires qui ne veulent jamais dire du bien.",
+      "danger": 5,
+      "foes": ["gladiator", "salamander", "assassin"],
+      "exits": ["bonta"]
+    }
+  ]
+}
