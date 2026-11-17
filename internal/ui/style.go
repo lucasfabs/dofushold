@@ -39,6 +39,9 @@ func Warn(s string) string   { return Yellow(s) }
 func Bad(s string) string    { return Red(s) }
 func Accent(s string) string { return Cyan(s) }
 
+// Icon ignore l'emoji (regle projet) et renvoie le texte.
+func Icon(_ string, text string) string { return text }
+
 // Banner cadre d'accueil.
 func Banner(title string) string {
 	line := strings.Repeat("─", len(title)+4)
@@ -50,6 +53,15 @@ func Banner(title string) string {
 
 func Separator() string {
 	return Accent("────────")
+}
+
+// FullWidthLine tiret horizontal sur toute la largeur du terminal.
+// width <= 0 utilise une largeur par defaut.
+func FullWidthLine(width int) string {
+	if width < 8 {
+		width = 40
+	}
+	return Accent(strings.Repeat("─", width))
 }
 
 // Danger colore le niveau 1-5.
@@ -89,4 +101,13 @@ func HPBar(hp, max int) string {
 	default:
 		return Bad(label)
 	}
+}
+
+// StatusLine affiche les PV du heros, et ceux de l'ennemi si foeName n'est pas vide.
+func StatusLine(heroHP, heroMax int, foeName string, foeHP, foeMax int) string {
+	line := "PV " + HPBar(heroHP, heroMax)
+	if foeName != "" {
+		line += " | " + Bold(foeName) + " " + HPBar(foeHP, foeMax)
+	}
+	return line
 }

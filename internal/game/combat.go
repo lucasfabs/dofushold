@@ -42,7 +42,7 @@ func rollDice(expr string) int {
 func (g *Game) playerAttack(foeAC int) (hit bool, dmg int) {
 	roll := rand.Intn(20) + 1
 	total := roll + g.Hero.AttackBonus
-	fmt.Printf("  Tu attaques: d20=%d +%d = %d vs CA %d\n", roll, g.Hero.AttackBonus, total, foeAC)
+	ui.TypePrintln(fmt.Sprintf("  Tu attaques: d20=%d +%d = %d vs CA %d", roll, g.Hero.AttackBonus, total, foeAC))
 	if total >= foeAC {
 		dmg = rollDice(g.Hero.DamageDice) + g.Hero.DamageBonus
 		if dmg < 1 {
@@ -70,7 +70,7 @@ func (g *Game) foeAttack(m *open5e.Monster) (hit bool, dmg int) {
 
 	roll := rand.Intn(20) + 1
 	total := roll + bonus
-	fmt.Printf("  %s attaque: d20=%d +%d = %d vs CA 12\n", m.Name, roll, bonus, total)
+	ui.TypePrintln(fmt.Sprintf("  %s attaque: d20=%d +%d = %d vs CA 12", m.Name, roll, bonus, total))
 	if total >= 12 {
 		dmg = rollDice(dice) + dmgBonus
 		if dmg < 1 {
@@ -87,17 +87,17 @@ func (g *Game) Fight() error {
 		return fmt.Errorf("aucun ennemi — explore d'abord")
 	}
 	m := g.Encounter
-	fmt.Println(ui.Banner("Combat: " + m.Name))
+	ui.TypePrintln(ui.Banner("Combat: " + m.Name))
 
 	for g.FoeHP > 0 && g.Hero.HP > 0 {
-		fmt.Printf("--- Tour (toi %s | %s %s) ---\n",
-			ui.HPBar(g.Hero.HP, g.Hero.MaxHP), m.Name, ui.HPBar(g.FoeHP, m.HitPoints))
+		ui.TypePrintln(fmt.Sprintf("--- Tour (toi %s | %s %s) ---",
+			ui.HPBar(g.Hero.HP, g.Hero.MaxHP), m.Name, ui.HPBar(g.FoeHP, m.HitPoints)))
 
 		if hit, dmg := g.playerAttack(m.ArmorClass); hit {
 			g.FoeHP -= dmg
-			fmt.Println(ui.Ok(fmt.Sprintf("  Touche ! %d degats.", dmg)))
+			ui.TypePrintln(ui.Ok("  " + ui.Icon("💥", fmt.Sprintf("Touche ! %d degats.", dmg))))
 		} else {
-			fmt.Println(ui.Warn("  Rate."))
+			ui.TypePrintln(ui.Warn("  " + ui.Icon("💨", "Rate.")))
 		}
 		if g.FoeHP <= 0 {
 			break
@@ -105,9 +105,9 @@ func (g *Game) Fight() error {
 
 		if hit, dmg := g.foeAttack(m); hit {
 			g.Hero.HP -= dmg
-			fmt.Println(ui.Bad(fmt.Sprintf("  Tu prends %d degats.", dmg)))
+			ui.TypePrintln(ui.Bad("  " + ui.Icon("💢", fmt.Sprintf("Tu prends %d degats.", dmg))))
 		} else {
-			fmt.Println(ui.Accent("  L'ennemi rate."))
+			ui.TypePrintln(ui.Accent("  " + ui.Icon("🛡️", "L'ennemi rate.")))
 		}
 	}
 
@@ -122,7 +122,7 @@ func (g *Game) Fight() error {
 	g.Gold += gold
 	g.Slain[m.Name]++
 	g.addXP(xp)
-	fmt.Println(ui.Ok(fmt.Sprintf("Victoire ! +%d XP, +%d or.", xp, gold)))
+	ui.TypePrintln(ui.Ok(ui.Icon("🏆", fmt.Sprintf("Victoire ! +%d XP, +%d or.", xp, gold))))
 	g.Encounter = nil
 	g.FoeHP = 0
 	return nil
@@ -135,20 +135,20 @@ func (g *Game) Flee() error {
 	}
 	m := g.Encounter
 	roll := rand.Intn(20) + 1
-	fmt.Printf("Tentative de fuite: d20 = %d (il faut >= 12)\n", roll)
+	ui.TypePrintln(ui.Icon("🏃", fmt.Sprintf("Tentative de fuite: d20 = %d (il faut >= 12)", roll)))
 	if roll >= 12 {
-		fmt.Println(ui.Ok("Tu t'echappes !"))
+		ui.TypePrintln(ui.Ok(ui.Icon("🏃", "Tu t'echappes !")))
 		g.Encounter = nil
 		g.FoeHP = 0
 		return nil
 	}
 
-	fmt.Println(ui.Bad("Fuite ratee — l'ennemi frappe gratuitement !"))
+	ui.TypePrintln(ui.Bad(ui.Icon("😵", "Fuite ratee — l'ennemi frappe gratuitement !")))
 	if hit, dmg := g.foeAttack(m); hit {
 		g.Hero.HP -= dmg
-		fmt.Println(ui.Bad(fmt.Sprintf("Tu prends %d degats.", dmg)))
+		ui.TypePrintln(ui.Bad(ui.Icon("💢", fmt.Sprintf("Tu prends %d degats.", dmg))))
 	} else {
-		fmt.Println(ui.Accent("Mais il rate."))
+		ui.TypePrintln(ui.Accent(ui.Icon("🛡️", "Mais il rate.")))
 	}
 	if g.Hero.HP <= 0 {
 		g.dieAndRespawn()

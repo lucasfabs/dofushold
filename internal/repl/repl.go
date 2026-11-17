@@ -10,7 +10,6 @@ import (
 	"github.com/lucas/dofushold/internal/game"
 	"github.com/lucas/dofushold/internal/open5e"
 	"github.com/lucas/dofushold/internal/ui"
-	"github.com/manifoldco/promptui"
 )
 
 // cliCommand = une commande (le sujet exige cette map ; help est genere dessus).
@@ -54,38 +53,6 @@ func commands() map[string]cliCommand {
 			return nil
 		}},
 	}
-}
-
-// selectOne : fleches + Entree (promptui). ok=false si Annuler / Escape.
-func selectOne(title string, items []string) (int, bool) {
-	if len(items) == 0 {
-		return -1, false
-	}
-	all := append(append([]string{}, items...), "Annuler")
-	prompt := promptui.Select{
-		Label: title,
-		Items: all,
-		Size:  14,
-		Templates: &promptui.SelectTemplates{
-			Label:    "{{ . | cyan }}  (↑↓ Entrée)",
-			Active:   "▸ {{ . | cyan | bold }}",
-			Inactive: "  {{ . }}",
-			Selected: "✔ {{ . | green }}",
-		},
-		HideSelected: true,
-	}
-	i, _, err := prompt.Run()
-	if err != nil {
-		if errors.Is(err, promptui.ErrInterrupt) || errors.Is(err, promptui.ErrEOF) {
-			return -1, false
-		}
-		fmt.Println(ui.Bad(err.Error()))
-		return -1, false
-	}
-	if i >= len(items) {
-		return -1, false
-	}
-	return i, true
 }
 
 func cmdHelp(_ *game.Game) error {
@@ -255,14 +222,21 @@ func menuPrincipal(g *game.Game) []menuItem {
 	}
 }
 
-// Run boucle de menus promptui (fleches + Entree).
+// Run boucle de menus Bubble Tea (horizontal pour le menu principal).
 func Run(g *game.Game) {
 	fmt.Println(ui.Banner("Dofushold"))
-	fmt.Println(ui.Accent("Navigue avec ↑ ↓ puis Entrée. Escape / Annuler pour revenir."))
+	fmt.Println(ui.Accent("Menu: ← → Entrée. Sous-menus: ↑ ↓ Entrée. Esc pour annuler."))
 	fmt.Println(ui.Separator())
 	fmt.Print(g.Look())
 
 	for {
+		foeName, foeHP, foeMax := "", 0, 0
+		if g.Encounter != nil {
+			foeName = g.Encounter.Name
+			foeHP, foeMax = g.FoeHP, g.Encounter.HitPoints
+		}
+		status := ui.StatusLine(g.Hero.HP, g.Hero.MaxHP, foeName, foeHP, foeMax)
+
 		items := menuPrincipal(g)
 		labels := make([]string, len(items))
 		for i, it := range items {
@@ -274,7 +248,7 @@ func Run(g *game.Game) {
 			title = fmt.Sprintf("Rencontre: %s", g.Encounter.Name)
 		}
 
-		i, ok := selectOne(title, labels)
+		i, ok := selectHorizontal(title, labels, status)
 		if !ok {
 			fmt.Println(ui.Warn("Menu annule — choisis une action ou Quitter."))
 			continue

@@ -105,7 +105,7 @@ func (g *Game) labelMap(id string) string {
 		s = ui.Ok(s)
 	}
 	if g.Location == id {
-		return ui.Accent("★" + s + "★")
+		return ui.Accent("★ " + s + " ★")
 	}
 	return s
 }
@@ -122,7 +122,7 @@ func (g *Game) Map() string {
 	fmt.Fprintf(&b, "              %s\n", g.labelMap("bonta"))
 	fmt.Fprintf(&b, "                 |\n")
 	fmt.Fprintf(&b, "             %s\n", g.labelMap("brakmar"))
-	fmt.Fprintf(&b, "\n%s\n", ui.Accent("★...★ = tu es ici"))
+	fmt.Fprintf(&b, "\n%s\n", ui.Accent("★ ... ★ = tu es ici"))
 	return b.String()
 }
 
@@ -140,7 +140,8 @@ func (g *Game) Travel(to string) error {
 	g.Location = to
 	g.RestOK = true // nouveau sejour = un repos possible
 	r := g.Region()
-	fmt.Printf("%s\n%s\n", ui.Ok("Tu arrives a "+r.Name+"."), r.Description)
+	ui.TypePrintln(ui.Ok(ui.Icon("🧭", "Tu arrives a "+r.Name+".")))
+	ui.TypePrintln(r.Description)
 	return nil
 }
 
@@ -148,11 +149,14 @@ func (g *Game) CharacterSheet() string {
 	h := g.Hero
 	var b strings.Builder
 	fmt.Fprintf(&b, "%s\n", ui.Banner("Personnage"))
-	fmt.Fprintf(&b, "Niveau %s | PV %s | XP %d (prochain: %d) | Attaque +%d\n",
-		ui.Accent(fmt.Sprintf("%d", h.Level)), ui.HPBar(h.HP, h.MaxHP),
-		h.XP, h.Level*h.Level*50, h.AttackBonus)
-	fmt.Fprintf(&b, "Arme: %s (%s+%d) | Or: %s\n",
-		h.Weapon, h.DamageDice, h.DamageBonus, ui.Yellow(fmt.Sprintf("%d", g.Gold)))
+	fmt.Fprintf(&b, "%s | %s | %s | %s\n",
+		ui.Icon("⭐", "Niveau "+ui.Accent(fmt.Sprintf("%d", h.Level))),
+		ui.Icon("❤️", "PV")+" "+ui.HPBar(h.HP, h.MaxHP),
+		ui.Icon("✨", fmt.Sprintf("XP %d (prochain: %d)", h.XP, h.Level*h.Level*50)),
+		ui.Icon("⚔️", fmt.Sprintf("Attaque +%d", h.AttackBonus)))
+	fmt.Fprintf(&b, "%s | %s\n",
+		ui.Icon("🗡️", fmt.Sprintf("Arme: %s (%s+%d)", h.Weapon, h.DamageDice, h.DamageBonus)),
+		ui.Icon("🪙", "Or: "+ui.Yellow(fmt.Sprintf("%d", g.Gold))))
 	return b.String()
 }
 
@@ -162,7 +166,7 @@ func (g *Game) Rest() error {
 	}
 	g.Hero.HP = g.Hero.MaxHP
 	g.RestOK = false
-	fmt.Println(ui.Ok("Tu te reposes. PV restaures."))
+	ui.TypePrintln(ui.Ok(ui.Icon("😴", "Tu te reposes. PV restaures.")))
 	return nil
 }
 
@@ -195,10 +199,10 @@ func (g *Game) Explore() error {
 
 	g.Encounter = best
 	g.FoeHP = best.HitPoints
-	fmt.Printf("%s %s (PV %s, CA %d, CR %s)\n",
-		ui.Bad("Une rencontre !"), ui.Bold(best.Name),
-		ui.HPBar(best.HitPoints, best.HitPoints), best.ArmorClass, best.ChallengeRating)
-	fmt.Println(ui.Warn("Choisis Combattre ou Fuir dans le menu."))
+	ui.TypePrintln(fmt.Sprintf("%s %s (PV %s, CA %d, CR %s)",
+		ui.Bad(ui.Icon("👹", "Une rencontre !")), ui.Bold(best.Name),
+		ui.HPBar(best.HitPoints, best.HitPoints), best.ArmorClass, best.ChallengeRating))
+	ui.TypePrintln(ui.Warn("Choisis Combattre ou Fuir dans le menu."))
 	return nil
 }
 
@@ -210,12 +214,12 @@ func (g *Game) addXP(amount int) {
 		g.Hero.MaxHP += 5
 		g.Hero.HP = g.Hero.MaxHP
 		g.Hero.AttackBonus++
-		fmt.Println(ui.Ok(fmt.Sprintf("Niveau superieur ! Tu es niveau %d.", g.Hero.Level)))
+		ui.TypePrintln(ui.Ok(ui.Icon("⭐", fmt.Sprintf("Niveau superieur ! Tu es niveau %d.", g.Hero.Level))))
 	}
 }
 
 func (g *Game) dieAndRespawn() {
-	fmt.Println(ui.Bad("Tu tombes... Tu te reveilles au Carrefour, blesse (1 PV)."))
+	ui.TypePrintln(ui.Bad(ui.Icon("💀", "Tu tombes... Tu te reveilles au Carrefour, blesse (1 PV).")))
 	g.Encounter = nil
 	g.FoeHP = 0
 	g.Location = g.World.Start
@@ -238,7 +242,7 @@ func (g *Game) Save() error {
 	if err := os.WriteFile(g.SavePath, b, 0o644); err != nil {
 		return fmt.Errorf("ecriture save: %w", err)
 	}
-	fmt.Println(ui.Ok("Partie sauvegardee."))
+	ui.TypePrintln(ui.Ok(ui.Icon("💾", "Partie sauvegardee.")))
 	return nil
 }
 
