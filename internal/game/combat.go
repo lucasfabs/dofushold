@@ -10,6 +10,8 @@ import (
 	"github.com/lucas/dofushold/internal/ui"
 )
 
+const critChancePercent = 3 // 3% de chance de critique (degats x2)
+
 // rollDice parse "1d8" ou "2d6" et tire le total.
 func rollDice(expr string) int {
 	expr = strings.TrimSpace(strings.ToLower(expr))
@@ -39,18 +41,27 @@ func rollDice(expr string) int {
 	return total
 }
 
-func (g *Game) playerAttack(foeAC int) (hit bool, dmg int) {
+// rollCrit = true dans ~3% des cas.
+func rollCrit() bool {
+	return rand.Intn(100) < critChancePercent
+}
+
+func (g *Game) playerAttack(foeAC int) (hit bool, dmg int, crit bool) {
 	roll := rand.Intn(20) + 1
 	total := roll + g.Hero.AttackBonus
 	ui.TypePrintln(fmt.Sprintf("  Tu attaques: d20=%d +%d = %d vs CA %d", roll, g.Hero.AttackBonus, total, foeAC))
-	if total >= foeAC {
-		dmg = rollDice(g.Hero.DamageDice) + g.Hero.DamageBonus
-		if dmg < 1 {
-			dmg = 1
-		}
-		return true, dmg
+	if total < foeAC {
+		return false, 0, false
 	}
-	return false, 0
+	dmg = rollDice(g.Hero.DamageDice) + g.Hero.DamageBonus
+	if dmg < 1 {
+		dmg = 1
+	}
+	if rollCrit() {
+		crit = true
+		dmg *= 2
+	}
+	return true, dmg, crit
 }
 
 func (g *Game) foeAttack(m *open5e.Monster) (hit bool, dmg int) {
@@ -81,34 +92,37 @@ func (g *Game) foeAttack(m *open5e.Monster) (hit bool, dmg int) {
 	return false, 0
 }
 
-// Fight deroule tout le combat jusqu'a victoire, defaite, ou plus d'ennemi.
+// Fight joue UN tour : tu frappes, puis l'ennemi riposte si vivant.
+// Le menu Combattre / Fuir permet de choisir a chaque tour.
 func (g *Game) Fight() error {
 	if g.Encounter == nil {
 		return fmt.Errorf("aucun ennemi — explore d'abord")
 	}
 	m := g.Encounter
-	ui.TypePrintln(ui.Banner("Combat: " + m.Name))
+	ui.TypePrintln(fmt.Sprintf("--- Tour (toi %s | %s %s) ---",
+		ui.HPBar(g.Hero.HP, g.Hero.MaxHP), m.Name, ui.HPBar(g.FoeHP, m.HitPoints)))
 
-	for g.FoeHP > 0 && g.Hero.HP > 0 {
-		ui.TypePrintln(fmt.Sprintf("--- Tour (toi %s | %s %s) ---",
-			ui.HPBar(g.Hero.HP, g.Hero.MaxHP), m.Name, ui.HPBar(g.FoeHP, m.HitPoints)))
-
-		if hit, dmg := g.playerAttack(m.ArmorClass); hit {
-			g.FoeHP -= dmg
+	if hit, dmg, crit := g.playerAttack(m.ArmorClass); hit {
+		g.FoeHP -= dmg
+		if crit {
+			ui.TypePrintln(ui.Ok("  " + ui.Icon("💥", fmt.Sprintf("COUP CRITIQUE ! %d degats (x2).", dmg))))
+		} else {
 			ui.TypePrintln(ui.Ok("  " + ui.Icon("💥", fmt.Sprintf("Touche ! %d degats.", dmg))))
-		} else {
-			ui.TypePrintln(ui.Warn("  " + ui.Icon("💨", "Rate.")))
 		}
-		if g.FoeHP <= 0 {
-			break
-		}
+	} else {
+		ui.TypePrintln(ui.Warn("  " + ui.Icon("💨", "Rate.")))
+	}
 
-		if hit, dmg := g.foeAttack(m); hit {
-			g.Hero.HP -= dmg
-			ui.TypePrintln(ui.Bad("  " + ui.Icon("💢", fmt.Sprintf("Tu prends %d degats.", dmg))))
-		} else {
-			ui.TypePrintln(ui.Accent("  " + ui.Icon("🛡️", "L'ennemi rate.")))
-		}
+	if g.FoeHP <= 0 {
+		g.winEncounter(m)
+		return nil
+	}
+
+	if hit, dmg := g.foeAttack(m); hit {
+		g.Hero.HP -= dmg
+		ui.TypePrintln(ui.Bad("  " + ui.Icon("💢", fmt.Sprintf("Tu prends %d degats.", dmg))))
+	} else {
+		ui.TypePrintln(ui.Accent("  " + ui.Icon("🛡️", "L'ennemi rate.")))
 	}
 
 	if g.Hero.HP <= 0 {
@@ -116,6 +130,11 @@ func (g *Game) Fight() error {
 		return nil
 	}
 
+	ui.TypePrintln(ui.Warn("Choisis Combattre ou Fuir pour le prochain tour."))
+	return nil
+}
+
+func (g *Game) winEncounter(m *open5e.Monster) {
 	cr := open5e.CRFloat(m.ChallengeRating)
 	xp := int(cr*100) + 10
 	gold := rand.Intn(10) + 1
@@ -125,10 +144,9 @@ func (g *Game) Fight() error {
 	ui.TypePrintln(ui.Ok(ui.Icon("🏆", fmt.Sprintf("Victoire ! +%d XP, +%d or.", xp, gold))))
 	g.Encounter = nil
 	g.FoeHP = 0
-	return nil
 }
 
-// Flee tente de fuir l'ennemi (jet style DEX).
+// Flee tente de fuir l'ennemi (jet style DEX). Echec = une attaque ennemie.
 func (g *Game) Flee() error {
 	if g.Encounter == nil {
 		return fmt.Errorf("rien a fuir")

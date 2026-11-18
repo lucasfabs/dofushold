@@ -18,13 +18,17 @@ func typewriterOn() bool {
 	if _, ok := os.LookupEnv("NO_TYPEWRITER"); ok {
 		return false
 	}
+	// Avec sink TUI, on garde l'effet meme si on ne teste que stdout.
+	if sink != nil {
+		return true
+	}
 	return term.IsTerminal(int(os.Stdout.Fd()))
 }
 
 // TypePrint ecrit s rune par rune (sequences ANSI d'un coup).
 func TypePrint(s string) {
 	if !typewriterOn() {
-		fmt.Print(s)
+		Write(s)
 		return
 	}
 
@@ -36,12 +40,11 @@ func TypePrint(s string) {
 			for end < len(runes) && runes[end-1] != 'm' {
 				end++
 			}
-			fmt.Print(string(runes[i:end]))
+			Write(string(runes[i:end]))
 			i = end - 1
 			continue
 		}
-		fmt.Print(string(runes[i]))
-		_ = os.Stdout.Sync()
+		Write(string(runes[i]))
 		if runes[i] != '\n' {
 			time.Sleep(charDelay)
 		}
@@ -51,7 +54,7 @@ func TypePrint(s string) {
 // TypePrintln = TypePrint + saut de ligne + pause narrative.
 func TypePrintln(s string) {
 	TypePrint(s)
-	fmt.Println()
+	Write("\n")
 	if typewriterOn() {
 		time.Sleep(linePause)
 	}
