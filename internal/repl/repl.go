@@ -2,14 +2,13 @@ package repl
 
 import (
 	"fmt"
-	"sort"
 
 	"github.com/lucas/dofushold/internal/game"
 	"github.com/lucas/dofushold/internal/open5e"
 	"github.com/lucas/dofushold/internal/ui"
 )
 
-// cliCommand = une commande (le sujet exige cette map ; help est genere dessus).
+// cliCommand = une commande (le sujet exige cette map).
 type cliCommand struct {
 	name        string
 	description string
@@ -23,7 +22,6 @@ type menuItem struct {
 
 func commands() map[string]cliCommand {
 	return map[string]cliCommand{
-		"help":      {name: "help", description: "Affiche cette aide", callback: cmdHelp},
 		"map":       {name: "map", description: "Carte ASCII des regions", callback: func(g *game.Game) error { ui.Write(g.Map()); return nil }},
 		"look":      {name: "look", description: "Decrit la region actuelle", callback: func(g *game.Game) error { ui.TypePrint(g.Look()); return nil }},
 		"travel":    {name: "travel", description: "Choisir une sortie", callback: nil}, // gere par la TUI
@@ -46,22 +44,6 @@ func commands() map[string]cliCommand {
 		}},
 		"quit": {name: "quit", description: "Quitte le jeu", callback: nil}, // gere par la TUI
 	}
-}
-
-func cmdHelp(_ *game.Game) error {
-	cmds := commands()
-	keys := make([]string, 0, len(cmds))
-	for k := range cmds {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	ui.TypePrintln(ui.Banner("Aide"))
-	for _, k := range keys {
-		c := cmds[k]
-		ui.TypePrintln(fmt.Sprintf("  %s  %s", ui.Accent(fmt.Sprintf("%-12s", c.name)), c.description))
-	}
-	return nil
 }
 
 func showBestiaryPage(g *game.Game, pageURL string) error {
@@ -114,7 +96,6 @@ func menuPrincipal(g *game.Game) []menuItem {
 		{label: "Monstres vaincus", run: cmds["slain"].callback},
 		{label: "Sauvegarder", run: cmds["save"].callback},
 		{label: "Charger", run: cmds["load"].callback},
-		{label: "Aide", run: cmds["help"].callback},
 		{label: "Quitter", run: nil},
 	}
 }
