@@ -77,7 +77,7 @@ func Danger(level int) string {
 	}
 }
 
-// HPBar barre [####----] coloree selon le ratio.
+// HPBar barre : [] et -- et hp/max en blanc, # en rouge.
 func HPBar(hp, max int) string {
 	if max < 1 {
 		max = 1
@@ -90,17 +90,9 @@ func HPBar(hp, max int) string {
 	if filled > width {
 		filled = width
 	}
-	bar := strings.Repeat("#", filled) + strings.Repeat("-", width-filled)
-	label := fmt.Sprintf("[%s] %d/%d", bar, hp, max)
-	ratio := float64(hp) / float64(max)
-	switch {
-	case ratio > 0.6:
-		return Ok(label)
-	case ratio > 0.3:
-		return Warn(label)
-	default:
-		return Bad(label)
-	}
+	filledPart := Red(strings.Repeat("#", filled))
+	emptyPart := strings.Repeat("-", width-filled)
+	return "[" + filledPart + emptyPart + "] " + fmt.Sprintf("%d/%d", hp, max)
 }
 
 // StatusLine affiche les PV du heros, et ceux de l'ennemi si foeName n'est pas vide.
